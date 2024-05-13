@@ -65,7 +65,25 @@ export const getTask = async (req, res, next) => {
         const task = doc(db, 'tasks', id);
         const data = await getDoc(task);
         if (data.exists()) {
-            res.status(200).send(data.data());
+            const taskData = data.data();
+            const task = new Task(
+                data.id,
+                taskData.autorName,
+                taskData.autorReference,
+                taskData.cargo,
+                taskData.descripcion,
+                taskData.esfuerzo,
+                taskData.fechaCreacion,
+                taskData.horas,
+                taskData.incertidumbre,
+                taskData.numeroTareas,
+                taskData.responsables,
+                taskData.status,
+                taskData.subtasks,
+                taskData.tipo,
+                taskData.titulo
+            );
+            res.status(200).send(task);
         } else {
             res.status(404).send("Task not found");
         }

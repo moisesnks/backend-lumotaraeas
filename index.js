@@ -4,6 +4,7 @@ import cors from 'cors';
 import config from './config.js';
 
 import taskRoute from './routes/taskRoute.js';
+import userRoute from './routes/userRoute.js';
 
 const app = express();
 
@@ -16,7 +17,7 @@ app.get('/', (req, res) => {
 });
 
 app.use('/tasks', taskRoute);
-
+app.use('/users', userRoute);
 
 app.listen(config.port, () =>
     console.log(`Server is live @ ${config.hostUrl}`),
