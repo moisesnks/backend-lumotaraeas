@@ -13,3 +13,8 @@ export const extraerReferencia = (referencia) => {
     }
     return null;
 };
+
+export const generatePhotoURL = (displayName) => {
+    const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=${randomColor()}&color=fff&size=200`;
+    return avatarUrl;
+};
