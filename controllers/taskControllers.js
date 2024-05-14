@@ -52,73 +52,55 @@ export const createTask = async (req, res, next) => {
 
 export const getTasks = async (req, res, next) => {
     try {
-        const tasks = await getDocs(collection(db, "tasks"));
+        const tasksSnapshot = await getDocs(collection(db, "tasks"));
         const tasksArray = [];
 
-        if (tasks.empty) {
+        if (tasksSnapshot.empty) {
             res.status(400).send("No tasks found");
-        } else {
-            tasks.forEach(async (doc) => {
-                const taskData = doc.data();
-                const autorRef = taskData.autorReference;
-                const autorData = await getUserDataFromRef(autorRef);
-
-                const responsables = [];
-                for (const responsableRef of taskData.responsables) {
-                    const responsableData = await getUserDataFromRef(responsableRef);
-                    if (responsableData) {
-                        responsables.push(responsableData);
-                    }
-                }
-
-                const task = new Task(
-                    doc.id,
-                    taskData.autorName,
-                    autorData,
-                    taskData.cargo,
-                    taskData.descripcion,
-                    taskData.esfuerzo,
-                    taskData.fechaCreacion,
-                    taskData.horas,
-                    taskData.incertidumbre,
-                    taskData.numeroTareas,
-                    responsables,
-                    taskData.status,
-                    taskData.subtasks,
-                    taskData.tipo,
-                    taskData.titulo
-                );
-                tasksArray.push(task);
-            });
-            res.status(200).send(tasksArray);
+            return; // Termina la ejecución de la función si no hay tareas
         }
+
+        // Itera sobre cada documento
+        for (const doc of tasksSnapshot.docs) {
+            // Construye cada tarea de forma asíncrona
+            const task = await Task.build(
+                doc.id,
+                doc.data().autorName,
+                doc.data().autorReference,
+                doc.data().cargo,
+                doc.data().descripcion,
+                doc.data().esfuerzo,
+                doc.data().fechaCreacion,
+                doc.data().horas,
+                doc.data().incertidumbre,
+                doc.data().numeroTareas,
+                doc.data().responsables,
+                doc.data().status,
+                doc.data().subtasks,
+                doc.data().tipo,
+                doc.data().titulo
+            );
+            tasksArray.push(task);
+        }
+
+        res.status(200).send(tasksArray);
     } catch (error) {
         res.status(400).send(error.message);
     }
 };
 
+
 export const getTask = async (req, res, next) => {
     try {
         const id = req.params.id;
-        const taskRef = doc(db, 'tasks', id);
-        const taskData = (await getDoc(taskRef)).data();
-
-        if (taskData) {
-            const autorRef = taskData.autorReference;
-            const autorData = await getUserDataFromRef(autorRef);
-
-            const responsables = [];
-            for (const responsableRef of taskData.responsables) {
-                const responsableData = await getUserDataFromRef(responsableRef);
-                if (responsableData) {
-                    responsables.push(responsableData);
-                }
-            }
-
-            const task = new Task(
-                taskRef.id,
+        const task = doc(db, 'tasks', id);
+        const data = await getDoc(task);
+        if (data.exists()) {
+            const taskData = data.data();
+            const task = await Task.build(
+                data.id,
                 taskData.autorName,
-                autorData,
+                taskData.autorReference,
                 taskData.cargo,
                 taskData.descripcion,
                 taskData.esfuerzo,
@@ -126,13 +108,12 @@ export const getTask = async (req, res, next) => {
                 taskData.horas,
                 taskData.incertidumbre,
                 taskData.numeroTareas,
-                responsables,
+                taskData.responsables,
                 taskData.status,
                 taskData.subtasks,
                 taskData.tipo,
                 taskData.titulo
             );
-
             res.status(200).send(task);
         } else {
             res.status(404).send("Task not found");

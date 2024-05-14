@@ -1,5 +1,6 @@
 // Path: utils/index.js
 
+import { getDoc } from "firebase/firestore";
 
 export const parsearFecha = (fecha) => {
     const fechaUnix = fecha.seconds * 1000 + fecha.nanoseconds / 1000000;
@@ -21,7 +22,9 @@ export const generatePhotoURL = (displayName) => {
 
 export const getUserDataFromRef = async (userRef) => {
     const userDoc = await getDoc(userRef);
-    return userDoc.exists() ? userDoc.data() : null;
+    const userData = userDoc.data();
+    const { id, displayName, email, photoURL } = userData;
+    return { id, displayName, email, photoURL };
 };
 
 export const getUserRefs = async (userIds) => {
