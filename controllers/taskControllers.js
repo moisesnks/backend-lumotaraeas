@@ -17,11 +17,32 @@ import {
 
 const db = getFirestore(firebase);
 
+// Función para obtener la referencia de un documento
+const toReference = (db, collectionName, docId) => {
+    return doc(db, collectionName, docId);
+}
+
 export const createTask = async (req, res, next) => {
     try {
         const data = req.body;
-        await addDoc(collection(db, "tasks"), data);
-        res.status(201).send("Task created successfully");
+        const Task = {
+            autorName: data.autorName,
+            autorReference: toReference(db, 'users', data.autorReference),
+            cargo: data.cargo,
+            descripcion: data.descripcion,
+            esfuerzo: data.esfuerzo,
+            fechaCreacion: data.fechaCreacion ? data.fechaCreacion : new Date(),
+            horas: data.horas,
+            incertidumbre: data.incertidumbre,
+            numeroTareas: data.numeroTareas,
+            responsables: data.responsables,
+            status: data.status,
+            subtasks: data.subtasks,
+            tipo: data.tipo,
+            titulo: data.titulo
+        };
+        await addDoc(collection(db, "tasks"), Task);
+        res.status(200).send("Task created successfully");
     } catch (error) {
         res.status(400).send(error.message);
     }
