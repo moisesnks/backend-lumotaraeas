@@ -26,13 +26,3 @@ export const getUserDataFromRef = async (userRef) => {
     const { id, displayName, email, photoURL } = userData;
     return { id, displayName, email, photoURL };
 };
-
-export const getUserRefs = async (userIds) => {
-    const userRefsPromises = userIds.map(userId => {
-        const userRef = doc(db, 'users', userId);
-        return getDoc(userRef);
-    });
-
-    const userSnapshots = await Promise.all(userRefsPromises);
-    return userSnapshots.filter(snapshot => snapshot.exists).map(snapshot => snapshot.ref);
-};

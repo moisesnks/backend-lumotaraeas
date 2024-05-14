@@ -1,8 +1,6 @@
 import firebase from '../firebase.js';
 import Task from '../models/taskModel.js';
 
-import { getUserRefs, getUserDataFromRef } from '../utils/utils.js';
-
 import {
     getFirestore,
     collection,
@@ -23,6 +21,16 @@ const db = getFirestore(firebase);
 const toReference = (db, collectionName, docId) => {
     return doc(db, collectionName, docId);
 }
+
+const getUserRefs = async (userIds) => {
+    const userRefsPromises = userIds.map(userId => {
+        const userRef = doc(db, 'users', userId);
+        return getDoc(userRef);
+    });
+
+    const userSnapshots = await Promise.all(userRefsPromises);
+    return userSnapshots.filter(snapshot => snapshot.exists).map(snapshot => snapshot.ref);
+};
 
 export const createTask = async (req, res, next) => {
     try {
@@ -148,16 +156,22 @@ export const deleteTask = async (req, res, next) => {
 
 
 
-// Función para actualizar la tarea
+// Función para actualizar la tarea sin duplicar responsables
 const updateTaskResponsables = async (taskRef, assignedUserRefs) => {
     const taskSnapshot = await getDoc(taskRef);
     const taskData = taskSnapshot.data();
 
-    const updatedResponsables = [...taskData.responsables, ...assignedUserRefs];
+    // Filtrar las nuevas referencias que no estén presentes en la tarea
+    const uniqueAssignedUserRefs = assignedUserRefs.filter(newRef =>
+        !taskData.responsables.some(existingRef => existingRef.id === newRef.id)
+    );
+
+    // Combinar las referencias filtradas con las existentes
+    const updatedResponsables = [...taskData.responsables, ...uniqueAssignedUserRefs];
+
     await updateDoc(taskRef, { responsables: updatedResponsables });
 }
 
-// Función para actualizar las referencias de tareas en los documentos de usuario
 const updateUserTareasReference = async (userRefs, taskRef) => {
     const userUpdatePromises = userRefs.map(userRef => {
         return updateDoc(userRef, {
