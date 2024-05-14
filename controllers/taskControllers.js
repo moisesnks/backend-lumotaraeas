@@ -1,6 +1,8 @@
 import firebase from '../firebase.js';
 import Task from '../models/taskModel.js';
 
+import { getUserRefs, getUserDataFromRef } from '../utils/utils.js';
+
 import {
     getFirestore,
     collection,
@@ -56,23 +58,35 @@ export const getTasks = async (req, res, next) => {
         if (tasks.empty) {
             res.status(400).send("No tasks found");
         } else {
-            tasks.forEach((doc) => {
+            tasks.forEach(async (doc) => {
+                const taskData = doc.data();
+                const autorRef = taskData.autorReference;
+                const autorData = await getUserDataFromRef(autorRef);
+
+                const responsables = [];
+                for (const responsableRef of taskData.responsables) {
+                    const responsableData = await getUserDataFromRef(responsableRef);
+                    if (responsableData) {
+                        responsables.push(responsableData);
+                    }
+                }
+
                 const task = new Task(
                     doc.id,
-                    doc.data().autorName,
-                    doc.data().autorReference,
-                    doc.data().cargo,
-                    doc.data().descripcion,
-                    doc.data().esfuerzo,
-                    doc.data().fechaCreacion,
-                    doc.data().horas,
-                    doc.data().incertidumbre,
-                    doc.data().numeroTareas,
-                    doc.data().responsables,
-                    doc.data().status,
-                    doc.data().subtasks,
-                    doc.data().tipo,
-                    doc.data().titulo
+                    taskData.autorName,
+                    autorData,
+                    taskData.cargo,
+                    taskData.descripcion,
+                    taskData.esfuerzo,
+                    taskData.fechaCreacion,
+                    taskData.horas,
+                    taskData.incertidumbre,
+                    taskData.numeroTareas,
+                    responsables,
+                    taskData.status,
+                    taskData.subtasks,
+                    taskData.tipo,
+                    taskData.titulo
                 );
                 tasksArray.push(task);
             });
@@ -86,14 +100,25 @@ export const getTasks = async (req, res, next) => {
 export const getTask = async (req, res, next) => {
     try {
         const id = req.params.id;
-        const task = doc(db, 'tasks', id);
-        const data = await getDoc(task);
-        if (data.exists()) {
-            const taskData = data.data();
+        const taskRef = doc(db, 'tasks', id);
+        const taskData = (await getDoc(taskRef)).data();
+
+        if (taskData) {
+            const autorRef = taskData.autorReference;
+            const autorData = await getUserDataFromRef(autorRef);
+
+            const responsables = [];
+            for (const responsableRef of taskData.responsables) {
+                const responsableData = await getUserDataFromRef(responsableRef);
+                if (responsableData) {
+                    responsables.push(responsableData);
+                }
+            }
+
             const task = new Task(
-                data.id,
+                taskRef.id,
                 taskData.autorName,
-                taskData.autorReference,
+                autorData,
                 taskData.cargo,
                 taskData.descripcion,
                 taskData.esfuerzo,
@@ -101,12 +126,13 @@ export const getTask = async (req, res, next) => {
                 taskData.horas,
                 taskData.incertidumbre,
                 taskData.numeroTareas,
-                taskData.responsables,
+                responsables,
                 taskData.status,
                 taskData.subtasks,
                 taskData.tipo,
                 taskData.titulo
             );
+
             res.status(200).send(task);
         } else {
             res.status(404).send("Task not found");
@@ -139,16 +165,7 @@ export const deleteTask = async (req, res, next) => {
     }
 }
 
-// Función para obtener las referencias de los usuarios
-const getUserRefs = async (userIds) => {
-    const userRefsPromises = userIds.map(userId => {
-        const userRef = doc(db, 'users', userId);
-        return getDoc(userRef);
-    });
 
-    const userSnapshots = await Promise.all(userRefsPromises);
-    return userSnapshots.filter(snapshot => snapshot.exists).map(snapshot => snapshot.ref);
-}
 
 // Función para actualizar la tarea
 const updateTaskResponsables = async (taskRef, assignedUserRefs) => {
