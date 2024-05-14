@@ -17,7 +17,8 @@ const db = getFirestore(firebase);
 export const createUser = async (req, res, next) => {
     try {
         const data = req.body;
-        await addDoc(collection(db, "users"), data);
+        // await addDoc(collection(db, "users"), data);
+        console.log(data);
         res.status(201).send("User created successfully");
     } catch (error) {
         res.status(400).send(error.message);
