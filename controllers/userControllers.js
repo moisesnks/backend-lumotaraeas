@@ -1,3 +1,5 @@
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { setDoc } from "firebase/firestore";
 import firebase from "../firebase.js";
 import User from "../models/userModel.js";
 
@@ -19,6 +21,19 @@ export const createUser = async (req, res, next) => {
         const data = req.body;
         // await addDoc(collection(db, "users"), data);
         console.log(data);
+        // Crear el usuario en Auth de Firebase
+
+        const user = await createUserWithEmailAndPassword(firebase.auth(), data.email, data.password);
+        // Crear el usuario en Firestore
+
+        // Se debe crear el usuario en Firestore con la ID que se genera en Auth
+        const Data = {
+            id: user.user.uid,
+            ...data
+        }
+
+        // Se debe usar setDoc en lugar de addDoc para poder especificar la ID del documento
+        await setDoc(doc(db, "users", user.user.uid), Data);
         res.status(201).send("User created successfully");
     } catch (error) {
         res.status(400).send(error.message);
