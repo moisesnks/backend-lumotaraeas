@@ -14,23 +14,12 @@ import {
     arrayRemove,
 } from "firebase/firestore";
 
+import { toReference, getUserRefs } from '../utils/utils.js';
+
 
 const db = getFirestore(firebase);
 
-// Función para obtener la referencia de un documento
-const toReference = (db, collectionName, docId) => {
-    return doc(db, collectionName, docId);
-}
 
-const getUserRefs = async (userIds) => {
-    const userRefsPromises = userIds.map(userId => {
-        const userRef = doc(db, 'users', userId);
-        return getDoc(userRef);
-    });
-
-    const userSnapshots = await Promise.all(userRefsPromises);
-    return userSnapshots.filter(snapshot => snapshot.exists).map(snapshot => snapshot.ref);
-};
 
 export const createTask = async (req, res, next) => {
     try {

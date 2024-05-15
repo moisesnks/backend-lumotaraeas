@@ -16,6 +16,8 @@ import {
 
 const db = getFirestore(firebase);
 
+
+
 export const createUser = async (req, res, next) => {
     try {
         const data = req.body;
@@ -43,29 +45,31 @@ export const createUser = async (req, res, next) => {
 export const getUsers = async (req, res, next) => {
     try {
         const users = await getDocs(collection(db, "users"));
-        const usersArray = [];
 
         if (users.empty) {
             res.status(400).send("No users found");
-        } else {
-            users.forEach((doc) => {
-                const user = new User(
-                    doc.id,
-                    doc.data().displayName,
-                    doc.data().email,
-                    doc.data().photoURL,
-                    doc.data().rol,
-                    doc.data().rut,
-                    doc.data().team,
-                    doc.data().cargo,
-                    doc.data().horas,
-                    doc.data().tareasReference
-                );
-                usersArray.push(user);
-            });
-            res.status(200).send(usersArray);
+            return;
         }
+
+        const usersArray = await Promise.all(users.docs.map(async (doc) => {
+            const user = await User.build(
+                doc.id,
+                doc.data().displayName,
+                doc.data().email,
+                doc.data().photoURL,
+                doc.data().rol,
+                doc.data().rut,
+                doc.data().team,
+                doc.data().cargo,
+                doc.data().horas,
+                doc.data().tareasReference
+            );
+            return user;
+        }));
+
+        res.status(200).send(usersArray);
     } catch (error) {
+        console.error("Error al obtener usuarios:", error);
         res.status(400).send(error.message);
     }
 }
@@ -78,19 +82,10 @@ export const getUser = async (req, res, next) => {
             res.status(400).send("User not found");
         } else {
             const userData = user.data();
-            const userObject = new User(
-                user.id,
-                userData.displayName,
-                userData.email,
-                userData.photoURL,
-                userData.rol,
-                userData.rut,
-                userData.team,
-                userData.cargo,
-                userData.horas,
-                userData.tareasReference
-            );
-            res.status(200).send(userObject);
+            const { id, displayName, email, photoURL, rol, rut, team, cargo, horas, tareasReference } = userData;
+            const userInstance = await User.build(id, displayName, email, photoURL, rol, rut, team, cargo, horas, tareasReference);
+            res.status(200).send(userInstance);
+
         }
     } catch (error) {
         res.status(400).send(error.message);
