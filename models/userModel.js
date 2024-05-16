@@ -32,7 +32,6 @@ class User {
     static async build(id, displayName, email, photoURL, rol, rut, team, cargo, horas, tareas) {
         const user = new User(id, displayName, email, photoURL, rol, rut, team, cargo, horas, tareas);
         await user.initTareasData(tareas);
-        console.log(user);
         return user;
     }
 

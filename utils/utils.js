@@ -1,6 +1,6 @@
 // Path: utils/index.js
 
-import { getDoc } from "firebase/firestore";
+import { getDoc, doc } from "firebase/firestore";
 import Task from "../models/taskModel.js";
 
 export const parsearFecha = (fecha) => {
@@ -54,7 +54,7 @@ export const toReference = (db, collectionName, docId) => {
     return doc(db, collectionName, docId);
 }
 
-export const getUserRefs = async (userIds) => {
+export const getUserRefs = async (db, userIds) => {
     const userRefsPromises = userIds.map(userId => {
         const userRef = doc(db, 'users', userId);
         return getDoc(userRef);

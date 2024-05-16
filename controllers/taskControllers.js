@@ -186,7 +186,7 @@ export const asignarResponsables = async (req, res, next) => {
         }
 
         // Obtener las referencias de los usuarios
-        const userRefs = await getUserRefs(responsables);
+        const userRefs = await getUserRefs(db, responsables);
 
         if (userRefs.length !== responsables.length) {
             return res.status(404).send("Algunos usuarios no existen");
@@ -242,7 +242,7 @@ export const desasignarResponsables = async (req, res, next) => {
         }
 
         // Obtener las referencias de los usuarios
-        const userRefs = await getUserRefs(responsables);
+        const userRefs = await getUserRefs(db, responsables);
 
         if (userRefs.length !== responsables.length) {
             return res.status(404).send("Algunos usuarios no existen");
