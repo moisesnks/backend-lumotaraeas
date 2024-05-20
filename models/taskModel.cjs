@@ -37,6 +37,26 @@ class Task {
         this.titulo = titulo;
     }
 
+    async initAutor() {
+        // Obtener el autor de la tarea, el id del autor se encuentra en this.autorId
+        const docRef = db.doc(`users/${this.autorId}`);
+        const docSnap = await docRef.get();
+        if (docSnap.exists) {
+            const autorData = docSnap.data();
+            // Sin el user build
+            this.autor = {
+                id: docSnap.id,
+                cargo: autorData.cargo,
+                displayName: autorData.displayName,
+                email: autorData.email,
+                photoURL: autorData.photoURL,
+                rut: autorData.rut,
+            }
+        } else {
+            console.error(`No se encontró el usuario con ID ${this.autorId}.`);
+        }
+    }
+
     async initResponsables() {
         const responsablesData = [];
         for (const responsableID of this.responsables) {
@@ -66,6 +86,7 @@ class Task {
     static async build(id, autorId, autorName, cargo, descripcion, esfuerzo, fechaCreacion, horas, incertidumbre, numeroTareas, responsables, status, subtasks, tipo, titulo) {
         const task = new Task(id, autorId, autorName, cargo, descripcion, esfuerzo, fechaCreacion, horas, incertidumbre, numeroTareas, responsables, status, subtasks, tipo, titulo);
         await task.initResponsables();
+        await task.initAutor();
         return task;
 
     }

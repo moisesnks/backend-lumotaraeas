@@ -12,12 +12,13 @@ const {
     desasignarResponsables
 } = require('../controller/tasks/index.cjs');
 
+const requiereAuth = require('../middleware/requiereAuth.cjs');
 const requiereRol = require('../middleware/requiereRol.cjs');
 const requiereAdmin = require('../middleware/requiereAdmin.cjs');
 
 const { getUid } = require('../utils.cjs');
 
-router.get('/', requiereRol(getTasksAdmin, getTasksUser)); // si es admin, devuelve todas las tareas, si es usuario, devuelve las tareas del usuario
+router.get('/', requiereAuth(getTasksAdmin)); // devuelve todas las tareas, solo si es admin
 
 router.get('/user/:uid', requiereAdmin(getTasksByUserController)); // devuelve las tareas de un usuario, solo si es admin
 
