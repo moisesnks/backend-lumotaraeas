@@ -739,7 +739,7 @@ const registros = [
 ];
 
 // Middleware para calcular las estadísticas de un tipo de tarea
-app.get('/cargo/:cargo', (req, res) => {
+router.get('/cargo/:cargo', (req, res) => {
     const cargo = req.params.cargo.toLowerCase();
     const validCargos = ['frontend', 'backend', 'devops', 'qa', 'infra', 'sec'];
 
@@ -782,7 +782,7 @@ app.get('/cargo/:cargo', (req, res) => {
 });
 
 // Middleware para calcular las estadísticas de un usuario
-app.get('/usuario/:usuario', (req, res) => {
+router.get('/usuario/:usuario', (req, res) => {
     const usuario = req.params.usuario.toLowerCase();
 
     const stats = {
