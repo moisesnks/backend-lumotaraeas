@@ -6,6 +6,7 @@ const usersRoutes = require('./routes/usersRoutes.cjs');
 const tasksRoutes = require('./routes/tasksRoutes.cjs');
 const authRoutes = require('./routes/authRoutes.cjs');
 const logsRoutes = require('./routes/logsRoutes.cjs');
+const bdownRoutes = require('./routes/bdownchart.cjs');
 const app = express();
 
 const logger = (req, res, next) => {
@@ -56,6 +57,7 @@ app.use('/users', usersRoutes);
 app.use('/tasks', tasksRoutes);
 app.use('/auth', authRoutes);
 app.use('/logs', logsRoutes);
+app.use('/bdownchart', bdownRoutes);
 
 const PORT = process.env.PORT || 3000;
 
