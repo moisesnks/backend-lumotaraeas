@@ -739,6 +739,7 @@ const registros = [
 ];
 
 // Middleware para calcular las estadísticas de un tipo de tarea
+// Middleware para calcular las estadísticas de un tipo de tarea
 router.get('/cargo/:cargo', (req, res) => {
     const cargo = req.params.cargo.toLowerCase();
     const validCargos = ['frontend', 'backend', 'devops', 'qa', 'infra', 'sec'];
@@ -747,8 +748,10 @@ router.get('/cargo/:cargo', (req, res) => {
         return res.status(400).json({ error: 'Cargo no válido' });
     }
 
+    const totalTasks = tasks.filter(task => task.cargo === cargo).length;
+
     const stats = {
-        total: tasks.filter(task => task.cargo === cargo).length,
+        total: totalTasks,
         terminadas: 0,
         inProgress: 0
     };
@@ -765,8 +768,8 @@ router.get('/cargo/:cargo', (req, res) => {
         }
     });
 
-    const porcentajeTerminadas = (stats.terminadas / stats.total) * 100;
-    const porcentajeInProgress = (stats.inProgress / stats.total) * 100;
+    const porcentajeTerminadas = (stats.terminadas / totalTasks) * 100;
+    const porcentajeInProgress = (stats.inProgress / totalTasks) * 100;
 
     res.json({
         total: stats.total,
@@ -780,6 +783,7 @@ router.get('/cargo/:cargo', (req, res) => {
         }
     });
 });
+
 
 // Middleware para calcular las estadísticas de un usuario
 router.get('/usuario/:usuario', (req, res) => {
