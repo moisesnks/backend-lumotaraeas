@@ -2,24 +2,8 @@ const { parsearFecha } = require('../utils.cjs');
 const User = require('./userModel.cjs');
 const { db } = require('../config.cjs');
 
-// TaskModel se refiere a un documento de la colección 'tasks', un documento de la coleccion tasks tiene:
-// autorId: string
-// autorName: string
-// cargo: string
-// descripcion: string
-// esfuerzo: number
-// fechaCreacion: Timestamp
-// horas: number
-// incertidumbre: number
-// numeroTareas: number
-// responsables: string[]
-// status: string
-// subtasks: string[]
-// tipo: string
-// titulo: string
-
 class Task {
-    constructor(id, autorId, autorName, cargo, descripcion, esfuerzo, fechaCreacion, horas, incertidumbre, numeroTareas, responsables, status, subtasks, tipo, titulo) {
+    constructor({ id, autorId, autorName, cargo, descripcion, esfuerzo, fechaCreacion, horas, incertidumbre, numeroTareas, responsables, status, subtasks, tipo, titulo }) {
         this.id = id;
         this.autorId = autorId;
         this.autorName = autorName;
@@ -43,15 +27,8 @@ class Task {
         const docSnap = await docRef.get();
         if (docSnap.exists) {
             const autorData = docSnap.data();
-            // Sin el user build
-            this.autor = {
-                id: docSnap.id,
-                cargo: autorData.cargo,
-                displayName: autorData.displayName,
-                email: autorData.email,
-                photoURL: autorData.photoURL,
-                rut: autorData.rut,
-            }
+            // Crear una instancia de User utilizando el constructor actualizado
+            this.autor = new User(autorData);
         } else {
             console.error(`No se encontró el usuario con ID ${this.autorId}.`);
         }
@@ -64,16 +41,8 @@ class Task {
             const docSnap = await docRef.get();
             if (docSnap.exists) {
                 const responsableData = docSnap.data();
-                // Sin el user build
-                const responsable =
-                {
-                    id: docSnap.id,
-                    cargo: responsableData.cargo,
-                    displayName: responsableData.displayName,
-                    email: responsableData.email,
-                    photoURL: responsableData.photoURL,
-                    rut: responsableData.rut,
-                }
+                // Crear una instancia de User utilizando el constructor actualizado
+                const responsable = new User(responsableData);
                 responsablesData.push(responsable);
             } else {
                 console.error(`No se encontró el usuario con ID ${responsableID}.`);
@@ -83,15 +52,64 @@ class Task {
     }
 
 
-    static async build(id, autorId, autorName, cargo, descripcion, esfuerzo, fechaCreacion, horas, incertidumbre, numeroTareas, responsables, status, subtasks, tipo, titulo) {
-        const task = new Task(id, autorId, autorName, cargo, descripcion, esfuerzo, fechaCreacion, horas, incertidumbre, numeroTareas, responsables, status, subtasks, tipo, titulo);
+    static async build({ id, autorId, autorName, cargo, descripcion, esfuerzo, fechaCreacion, horas, incertidumbre, numeroTareas, responsables, status, subtasks, tipo, titulo }) {
+        const task = new Task({ id, autorId, autorName, cargo, descripcion, esfuerzo, fechaCreacion, horas, incertidumbre, numeroTareas, responsables, status, subtasks, tipo, titulo });
         await task.initResponsables();
         await task.initAutor();
         return task;
-
     }
 
+    static async createTask(taskData) {
+        try {
+            const task = new Task(taskData);
+            await task.save();
+            return task;
+        } catch (error) {
+            console.error('Error al crear tarea:', error);
+            throw error;
+        }
+    }
+
+    static async getTask(taskId) {
+        try {
+            const docRef = db.doc(`tasks/${taskId}`);
+            const docSnap = await docRef.get();
+            if (docSnap.exists) {
+                const taskData = docSnap.data();
+                const task = new Task(taskData);
+                await task.initResponsables();
+                await task.initAutor();
+                return task;
+            } else {
+                throw new Error(`No se encontró la tarea con ID ${taskId}.`);
+            }
+        } catch (error) {
+            console.error('Error al obtener tarea:', error);
+            throw error;
+        }
+    }
+
+    static async updateTask(taskId, newData) {
+        try {
+            const task = await getTask(taskId);
+            Object.assign(task, newData);
+            await task.save();
+            return task;
+        } catch (error) {
+            console.error('Error al actualizar tarea:', error);
+            throw error;
+        }
+    }
+
+    static async deleteTask(taskId) {
+        try {
+            const task = await getTask(taskId);
+            await task.delete();
+        } catch (error) {
+            console.error('Error al eliminar tarea:', error);
+            throw error;
+        }
+    }
 }
 
 module.exports = Task;
-

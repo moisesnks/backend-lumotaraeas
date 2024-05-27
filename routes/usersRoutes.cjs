@@ -10,7 +10,7 @@ router.get('/', requiereAdmin(getUsersController)); // devuelve todos los usuari
 
 router.get('/:uid', requiereRol(getUserAdminController, getUserUserController)); // si es admin, devuelve el usuario, si es usuario, solo puede ver su propio usuario
 
-router.post('/', requiereAdmin, createUserController); // crea un usuario, solo si es admin
+router.post('/', requiereAdmin(createUserController)); // crea un usuario, solo si es admin
 
 router.delete('/:uid', requiereAdmin(deleteUserController)); // elimina un usuario, solo si es admin
 
@@ -68,8 +68,9 @@ async function getUsersController(req, res) {
 
 async function createUserController(req, res) {
     try {
-        const user = await createUser(req.body);
-        res.status(201).json(user);
+        await createUser(req.body);
+
+        res.status(201).json({ message: 'Usuario creado correctamente' });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

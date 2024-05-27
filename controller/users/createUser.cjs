@@ -1,46 +1,58 @@
 // Path: controller/auth/createUser.cjs
 
 const admin = require('firebase-admin');
-const { isValidEmail, isValidPassword, setAdmin } = require('../../utils.cjs');
+const { isValidEmail, isValidPassword, setAdmin, generatePhotoURL } = require('../../utils.cjs');
 const User = require('../../models/userModel.cjs');
 
 
 async function createUser(data) {
-
-    const { email, password, displayName, photoURL, isAdmin = false, rut } = data;
-
-    if (!isValidEmail(email)) {
-        throw new Error('El email no es válido');
+    const { email, password, displayName, isAdmin = false, rut, cargo, capacidad, equipo, tasks = [] } = data;
+    let { photoURL } = data;
+    if (!photoURL) {
+        let urlName = displayName.replace(/\s+/g, '_');
+        urlName = urlName.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        urlName = urlName.toLowerCase();
+        photoURL = generatePhotoURL(urlName);
     }
 
-    try {
-        isValidPassword(password);
-    } catch (error) {
-        throw new Error(error.message);
-    }
+    // if (!isValidEmail(email)) {
+    //     throw new Error('El email no es válido');
+    // }
+
+    // try {
+    //     isValidPassword(password);
+    // } catch (error) {
+    //     throw new Error(error.message);
+    // }
+
+
 
     try {
         const userRecord = await admin.auth().createUser({
             email,
             password,
             displayName,
-            photoURL
+            photoURL: photoURL || generatePhotoURL(displayName)
         });
 
         const uid = userRecord.uid;
 
-        if (isAdmin === true) {
+        if (isAdmin) {
             await setAdmin(uid, true);
         }
 
-        const data = {
+        const userData = {
             email,
             displayName,
-            photoURL,
-            rut
+            photoURL: photoURL || generatePhotoURL(displayName),
+            rut,
+            cargo,
+            capacidad,
+            equipo,
+            tasks
         };
 
-        await createUserInDB(userRecord.uid, data);
+        await createUserInDB(uid, userData);
 
     } catch (error) {
         console.error('Error al crear usuario:', error);
@@ -49,22 +61,19 @@ async function createUser(data) {
 }
 
 async function createUserInDB(uid, userData) {
-    try {
-        const photoURL = userData.photoURL;
-        const email = userData.email;
-        const displayName = userData.displayName || 'no especificado';
-        const cargo = userData.cargo || 'no especificado';
-        const horas = userData.horas || 0;
-        const rut = userData.rut || 'no especificado';
-        const tasks = userData.tasks || [];
-        const user = new User(uid, cargo, displayName, email, horas, photoURL, rut, tasks);
-        const data = user.toJSON();
-        return admin.firestore().collection('users').doc(uid).set(data);
+    const { displayName, rut, email, cargo, capacidad, equipo, tasks = [] } = userData;
+    const photoURL = userData.photoURL || generatePhotoURL(displayName);
 
-    } catch (error) {
-        console.error('Error al crear usuario en la base de datos:', error);
-        throw error;
-    }
+    // Crear una nueva instancia del usuario con un objeto
+    const user = new User({ id: uid, displayName, email, photoURL, rut, cargo, capacidad, equipo });
+
+    // Inicializar las tareas (si hay alguna)
+    await user.initTasks();
+
+    // Guardar el usuario en Firestore
+    await user.save();
+
+    return user;
 }
 
 module.exports = createUser;
