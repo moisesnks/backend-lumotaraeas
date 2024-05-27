@@ -738,8 +738,6 @@ const registros = [
     }
 ];
 
-// Middleware para calcular las estadísticas de un tipo de tarea
-// Middleware para calcular las estadísticas de un tipo de tarea
 router.get('/cargo/:cargo', (req, res) => {
     const cargo = req.params.cargo.toLowerCase();
     const validCargos = ['frontend', 'backend', 'devops', 'qa', 'infra', 'sec'];
@@ -748,82 +746,98 @@ router.get('/cargo/:cargo', (req, res) => {
         return res.status(400).json({ error: 'Cargo no válido' });
     }
 
-    const totalTasks = tasks.filter(task => task.cargo === cargo).length;
-
-    const stats = {
-        total: totalTasks,
-        terminadas: 0,
-        inProgress: 0
-    };
+    const uniqueTaskIds = new Set();
 
     registros.forEach(registro => {
-        const tarea = tasks.find(t => t.id === registro["id tarea"] && t.cargo === cargo);
+        if (registro.cargo === cargo) {
+            uniqueTaskIds.add(registro["id tarea"]);
+        }
+    });
+
+    const totalTasks = uniqueTaskIds.size;
+
+    let terminadas = 0;
+    let inProgress = 0;
+
+    uniqueTaskIds.forEach(taskId => {
+        const tarea = tasks.find(t => t.id === taskId && t.cargo === cargo);
         if (tarea) {
-            const discount = parseInt(registro.discount);
-            if (discount === 0) {
-                stats.terminadas++;
+            const taskStatus = registros.find(r => r["id tarea"] === taskId && r.cargo === cargo);
+            if (taskStatus.discount === "0") {
+                terminadas++;
             } else {
-                stats.inProgress++;
+                inProgress++;
             }
         }
     });
 
-    const porcentajeTerminadas = (stats.terminadas / totalTasks) * 100;
-    const porcentajeInProgress = (stats.inProgress / totalTasks) * 100;
+    const porcentajeTerminadas = (terminadas / totalTasks) * 100;
+    const porcentajeInProgress = (inProgress / totalTasks) * 100;
 
     res.json({
-        total: stats.total,
+        total: totalTasks,
         terminadas: {
-            cantidad: stats.terminadas,
+            cantidad: terminadas,
             porcentaje: porcentajeTerminadas.toFixed(2) + '%'
         },
         inProgress: {
-            cantidad: stats.inProgress,
+            cantidad: inProgress,
             porcentaje: porcentajeInProgress.toFixed(2) + '%'
         }
     });
 });
 
 
-// Middleware para calcular las estadísticas de un usuario
 router.get('/usuario/:usuario', (req, res) => {
     const usuario = req.params.usuario.toLowerCase();
 
-    const stats = {
-        total: 0,
-        terminadas: 0,
-        inProgress: 0
-    };
+    const validUsers = ['cmartinezs', 'msolis', 'babarca', 'benjamín abarca', 'nicolás sepúlveda', 'pablo vargas', 'josé malca', 'italo rojas'];
+
+    if (!validUsers.includes(usuario)) {
+        return res.status(400).json({ error: 'Usuario no válido' });
+    }
+
+    const uniqueTaskIds = new Set();
 
     registros.forEach(registro => {
-        const tarea = tasks.find(t => t.id === registro["id tarea"] && t.responsible.toLowerCase() === usuario);
+        if (registro.responsable.toLowerCase() === usuario) {
+            uniqueTaskIds.add(registro["id tarea"]);
+        }
+    });
+
+    const totalTasks = uniqueTaskIds.size;
+
+    let terminadas = 0;
+    let inProgress = 0;
+
+    uniqueTaskIds.forEach(taskId => {
+        const tarea = tasks.find(t => t.id === taskId);
         if (tarea) {
-            const discount = parseInt(registro.discount);
-            if (discount === 0) {
-                stats.terminadas++;
+            const taskStatus = registros.find(r => r["id tarea"] === taskId);
+            if (taskStatus.discount === "0") {
+                terminadas++;
             } else {
-                stats.inProgress++;
+                inProgress++;
             }
         }
     });
 
-    stats.total = stats.terminadas + stats.inProgress;
-
-    const porcentajeTerminadas = (stats.terminadas / stats.total) * 100;
-    const porcentajeInProgress = (stats.inProgress / stats.total) * 100;
+    const porcentajeTerminadas = (terminadas / totalTasks) * 100;
+    const porcentajeInProgress = (inProgress / totalTasks) * 100;
 
     res.json({
-        total: stats.total,
+        total: totalTasks,
         terminadas: {
-            cantidad: stats.terminadas,
+            cantidad: terminadas,
             porcentaje: porcentajeTerminadas.toFixed(2) + '%'
         },
         inProgress: {
-            cantidad: stats.inProgress,
+            cantidad: inProgress,
             porcentaje: porcentajeInProgress.toFixed(2) + '%'
         }
     });
 });
+
 
 module.exports = router;
 
