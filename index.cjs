@@ -10,50 +10,49 @@ const bdownRoutes = require('./routes/bdownchart.cjs');
 const statsRoutes = require('./routes/statsRoute.cjs');
 const app = express();
 
+// Objeto para almacenar las marcas de tiempo de todas las peticiones
+const requestTimes = [];
+let requestCount = 0;
+
+// Middleware para limitar el número de solicitudes a 2000 por hora
+const requestLimit = (req, res, next) => {
+    const now = Date.now();
+    const oneHour = 60 * 60 * 1000; // Intervalo de 1 hora en milisegundos
+    const maxRequestsPerHour = 1000; // Número máximo de peticiones permitidas por hora
+
+    // Limpiar las solicitudes que son más antiguas de 1 hora
+    while (requestTimes.length > 0 && now - requestTimes[0] > oneHour) {
+        requestTimes.shift();
+        requestCount--;
+    }
+
+    // Verificar si el número de peticiones supera el límite por hora
+    if (requestCount >= maxRequestsPerHour) {
+        res.status(429).json({ error: 'Too Many Requests. Please try again later.' });
+    } else {
+        // Añadir la marca de tiempo de la nueva petición y aumentar el contador
+        requestTimes.push(now);
+        requestCount++;
+        next();
+    }
+};
+
 const logger = (req, res, next) => {
     const originalSend = res.send;
     res.send = function (body) {
         const date = new Date().toLocaleString('es-CL', { timeZone: 'America/Santiago' });
-        console.log(`[${date}] [${req.method}] ${req.originalUrl} [${res.statusCode}]`);
+        console.log(`[${date}] [${req.method}] ${req.originalUrl} [${res.statusCode}] [Requests in the last hour: ${requestCount}]`);
         originalSend.call(this, body);
     };
     next();
 };
 
-const requestLimit = (req, res, next) => {
-    const ip = req.ip; // Obtiene la dirección IP del cliente
-    const now = Date.now();
-    const interval = 10 * 1000; // Intervalo de 10 segundos
-    const maxRequests = 10; // Número máximo de peticiones permitidas en el intervalo
-
-    // Verificar si existe el registro de peticiones del usuario
-    if (!requests[ip]) {
-        requests[ip] = [];
-    }
-
-    // Filtrar las peticiones dentro del intervalo de tiempo
-    const requestsWithinInterval = requests[ip].filter(timestamp => now - timestamp < interval);
-
-    // Verificar si el número de peticiones supera el límite
-    if (requestsWithinInterval.length >= maxRequests) {
-        // El usuario ha excedido el límite de peticiones, aplicar ban temporal
-        res.status(429).json({ error: 'Too Many Requests. Please try again later.' });
-    } else {
-        // Añadir la marca de tiempo de la nueva petición
-        requests[ip].push(now);
-        next();
-    }
-};
-
-// Objeto para almacenar las marcas de tiempo de las peticiones por dirección IP
-const requests = {};
-
 app.use(cors({ origin: true, methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'] }));
 app.use(express.json());
 
 // Routes
-app.use(logger);
 app.use(requestLimit); // Aplicar middleware de limitación de peticiones
+app.use(logger);
 app.use('/users', usersRoutes);
 app.use('/tasks', tasksRoutes);
 app.use('/auth', authRoutes);

@@ -1,9 +1,12 @@
 const { parsearFecha } = require('../utils.cjs');
+delete require.cache[require.resolve('./userModel.cjs')];
 const User = require('./userModel.cjs');
 const { db } = require('../config.cjs');
-
 class Task {
-    constructor({ id, autorId, autorName, cargo, descripcion, esfuerzo, fechaCreacion, horas, incertidumbre, numeroTareas, responsables, status, subtasks, tipo, titulo }) {
+    constructor({
+        id, autorId, autorName, cargo, descripcion, esfuerzo, fechaCreacion,
+        horas, incertidumbre, numeroTareas, responsables, status, subtasks, tipo, titulo
+    }) {
         this.id = id;
         this.autorId = autorId;
         this.autorName = autorName;
@@ -22,41 +25,84 @@ class Task {
     }
 
     async initAutor() {
-        // Obtener el autor de la tarea, el id del autor se encuentra en this.autorId
-        const docRef = db.doc(`users/${this.autorId}`);
-        const docSnap = await docRef.get();
-        if (docSnap.exists) {
-            const autorData = docSnap.data();
-            // Crear una instancia de User utilizando el constructor actualizado
-            this.autor = new User(autorData);
-        } else {
-            console.error(`No se encontró el usuario con ID ${this.autorId}.`);
+        try {
+            const docRef = db.doc(`users/${this.autorId}`);
+            const docSnap = await docRef.get();
+            if (docSnap.exists) {
+                const autorData = docSnap.data();
+                this.autor = new User(autorData);
+            } else {
+                console.error(`No se encontró el usuario con ID ${this.autorId}.`);
+            }
+        } catch (error) {
+            console.error(`Error al obtener el autor con ID ${this.autorId}:`, error);
         }
     }
 
     async initResponsables() {
-        const responsablesData = [];
-        for (const responsableID of this.responsables) {
-            const docRef = db.doc(`users/${responsableID}`);
-            const docSnap = await docRef.get();
-            if (docSnap.exists) {
-                const responsableData = docSnap.data();
-                // Crear una instancia de User utilizando el constructor actualizado
-                const responsable = new User(responsableData);
-                responsablesData.push(responsable);
-            } else {
-                console.error(`No se encontró el usuario con ID ${responsableID}.`);
+        try {
+            const responsablesData = [];
+            for (const responsableID of this.responsables) {
+                const docRef = db.doc(`users/${responsableID}`);
+                const docSnap = await docRef.get();
+                if (docSnap.exists) {
+                    const responsableData = docSnap.data();
+                    responsablesData.push(new User(responsableData));
+                } else {
+                    console.error(`No se encontró el usuario con ID ${responsableID}.`);
+                }
             }
+            this.responsables = responsablesData;
+        } catch (error) {
+            console.error('Error al obtener responsables:', error);
         }
-        this.responsables = responsablesData;
     }
 
-
-    static async build({ id, autorId, autorName, cargo, descripcion, esfuerzo, fechaCreacion, horas, incertidumbre, numeroTareas, responsables, status, subtasks, tipo, titulo }) {
-        const task = new Task({ id, autorId, autorName, cargo, descripcion, esfuerzo, fechaCreacion, horas, incertidumbre, numeroTareas, responsables, status, subtasks, tipo, titulo });
+    static async build(taskData) {
+        const task = new Task(taskData);
         await task.initResponsables();
         await task.initAutor();
         return task;
+    }
+
+    async save() {
+        try {
+            const docRef = db.doc(`tasks/${this.id}`);
+            await docRef.set(this.toFirestore());
+        } catch (error) {
+            console.error('Error al guardar la tarea:', error);
+            throw error;
+        }
+    }
+
+    async delete() {
+        try {
+            const docRef = db.doc(`tasks/${this.id}`);
+            await docRef.delete();
+        } catch (error) {
+            console.error('Error al eliminar la tarea:', error);
+            throw error;
+        }
+    }
+
+    toFirestore() {
+        return {
+            id: this.id,
+            autorId: this.autorId,
+            autorName: this.autorName,
+            cargo: this.cargo,
+            descripcion: this.descripcion,
+            esfuerzo: this.esfuerzo,
+            fechaCreacion: this.fechaCreacion,
+            horas: this.horas,
+            incertidumbre: this.incertidumbre,
+            numeroTareas: this.numeroTareas,
+            responsables: this.responsables.map(responsable => responsable.id),
+            status: this.status,
+            subtasks: this.subtasks,
+            tipo: this.tipo,
+            titulo: this.titulo
+        };
     }
 
     static async createTask(taskData) {
@@ -91,7 +137,7 @@ class Task {
 
     static async updateTask(taskId, newData) {
         try {
-            const task = await getTask(taskId);
+            const task = await Task.getTask(taskId);
             Object.assign(task, newData);
             await task.save();
             return task;
@@ -103,13 +149,38 @@ class Task {
 
     static async deleteTask(taskId) {
         try {
-            const task = await getTask(taskId);
+            const task = await Task.getTask(taskId);
             await task.delete();
         } catch (error) {
             console.error('Error al eliminar tarea:', error);
             throw error;
         }
     }
+
+    static async find() {
+        try {
+            const tasks = [];
+            const querySnapshot = await db.collection('tasks').get();
+            querySnapshot.forEach(doc => {
+                const taskData = doc.data();
+                tasks.push(new Task(taskData));
+            });
+
+            const tasksPromises = tasks.map(async task => {
+                await task.initResponsables();
+                await task.initAutor();
+                return task;
+            });
+
+            return Promise.all(tasksPromises);
+
+
+        } catch (error) {
+            console.error('Error al obtener tareas:', error);
+            throw error;
+        }
+    }
+
 }
 
 module.exports = Task;

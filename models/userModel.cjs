@@ -2,7 +2,9 @@ const Task = require('./taskModel.cjs');
 const { db } = require('../config.cjs');
 
 class User {
-    constructor({ id, displayName, photoURL, rut, email, cargo, capacidad, equipo, tasks = [] }) {
+    constructor({
+        id, displayName, photoURL, rut, email, cargo, capacidad, equipo, tasks = []
+    }) {
         this.id = id;
         this.displayName = displayName;
         this.photoURL = photoURL;
@@ -61,7 +63,7 @@ class User {
                 id: docSnap.id,
                 ...userData
             });
-            // await user.initTasks();
+            await user.initTasks();
             return user;
         } else {
             throw new Error(`No se encontró el usuario con ID ${id}.`);
